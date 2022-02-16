@@ -1,7 +1,212 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 1 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Rasterizer</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2018</h1>
+<h1 align="middle">Project 1: Rasterizer</h1>
+<h2 align="middle">Ishil Puri & Ashvin Dhawan, CS184-ABS, CS184-??</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>Give a high-level overview of what you implemented in this project. Think about what you've built as a whole. Share your thoughts on what interesting things you've learned from completing the project.</p>
+
+<h2 align="middle">Section I: Rasterization</h2>
+
+<h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
+
+<p>In task 1, we realized sampling every point in the buffer was inefficient and clearly unnecessary. So we decided to attempt to take a simple approach of selecting all of the pixels located within the rectangle which bounds the triangle. In order to ensure we could account for all types of triangles, we set rules that required the rectangle to start at the smallest (x,y) coordinate (the top left corner of our coordinate system in this case). Then, we collected the largest x and y coordinates which ensures that in cases where a triangle has one point with a larger x and another point with a larger y have both points contained within the rectangle bounding box. The way we accomplished this was by taking the min of all x’s and y’s and the max of all x’s and y’s. Now that we have the bounds of the rectangle we were able to construct a simple nested for loop which could iterate through the pixels in order. This is the same approach as the algorithm which checks each sample within the bounding box of the triangle–thus it cannot be worse.</p>
+
+<div align="middle">
+  <table style="width=100%">
+<!--    <tr>-->
+<!--      <td>-->
+        <img src="images/task1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Task 1.</figcaption>
+<!--      </td>-->
+<!--      <td>-->
+<!--        <img src="images/image2.png" align="middle" width="400px"/>-->
+<!--        <figcaption align="middle">Caption goes here.</figcaption>-->
+<!--      </td>-->
+<!--    </tr>-->
+    <br>
+<!--    <tr>-->
+<!--      <td>-->
+<!--        <img src="images/image3.png" align="middle" width="400px"/>-->
+<!--        <figcaption align="middle">Caption goes here.</figcaption>-->
+<!--      </td>-->
+<!--      <td>-->
+<!--        <img src="images/image4.png" align="middle" width="400px"/>-->
+<!--        <figcaption align="middle">Caption goes here.</figcaption>-->
+<!--      </td>-->
+<!--    </tr>-->
+  </table>
+</div>
+
+
+<h3 align="middle">Part 2: Antialiasing triangles</h3>
+Supersampling is useful in making images appear smoother by removing jagged edges (jaggies). It does this by taking more samples per pixel and averaging them. For example, at a high frequency location like a line or border on an image, instead of a harsh pixel bound we would see a sort of blending/blurring effect. This is how we are able to remove the high signal frequencies by averaging them with nearby pixels and can lower the signal frequencies creating a smoother image.
+    The algorithm was quite simple, we simply used the sample rate to determine the number of partitions or “subpixels” we wanted to analyze per pixel in the buffer. For example: if sample rate is 9 then for each pixel we want 9 samples all equally spaced within the pixel. So we geometrically derived the formula to be <sup>(subpixel<sub>current</sub>)</sup>&frasl;<sub>(&#8730sample rate)</sub> + <sup>1</sup>&frasl;<sub>(2 * &#8730sample rate)</sub>. This allows us to check each subpixel’s membership within the triangle. So far we have essentially pretended that the image’s resolution is now 9x greater and we must now downsample. Thus, we take the average of all 9 sub pixels and then fill the corresponding original pixel with that averaged color producing the desired effect.
+The main data structure we used was a vector. This vector served as our temporary buffer which stored the supersampled size number of pixels. Our format for writing to this buffer was that for each pixel location we would simply place `sample rate` amount of samples in sequence (starting from the top left corner working our way right and down). We then read from the vector in this format in the resolve_to_framebuffer method which took care of the downsampling.
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task2-1.png" align="middle" width="400px"/>
+        <figcaption align="middle">1x</figcaption>
+      </td>
+      <td>
+        <img src="images/task2-2.png" align="middle" width="400px"/>
+        <figcaption align="middle">4x</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/task2-3.png" align="middle" width="400px"/>
+        <figcaption align="middle">16x</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+
+<h3 align="middle">Part 3: Transforms</h3>
+
+<p> 
+  In task 3, we implemented the scale, rotate, and translate transforms that allow us to manipulate polygons. We accomplished this using homogenous coordinates, necessitating the use of Matrix3x3 objects although we were operating with 2 dimensional polygons. An updated version of robot.svg is shown below:
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/my_robot.svg" align="middle" width="400px"/>
+        <figcaption align="middle">Bow-legged waving cubeman</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<p>
+  We wanted to give cubeman a rather bow-legged appearance, with a wave! To do this, I had to add a rotate transform before the already-existing scale transforms on both legs, where I rotated both legs 20 degrees inwards. I also adjusted the translation transforms on both legs to make him look more natural. For his right arm, I needed to rotate both segments of his arm at varying degrees, while also altering the x and y coordinates of the existing translation transforms in order to make the wave appear more natural. 
+</p>
+
+
+<h2 align="middle">Section II: Sampling</h2>
+
+<h3 align="middle">Part 4: Barycentric coordinates</h3>
+Barycentric coordinates is essentially a coordinate system in which we can refer to a location or point within a triangle. This allows us to sample points within the triangle not limited to the pixel space and gives us the ability to have continuous and smoothly varying values depicted by the color wheel below via linear interpolation. In the future when mapping textures and using perspective shifts, we must be sure to map u,v coordinates back to the viewing coordinate system to prevent unintended images. As seen in the color triangle below, we have 3 points plotted (r,g,b) to represent the points of the triangle, next, we are able to use the alpha, beta, gamma values by calculating the barycentric coordinates which give us the relative position of a point within the triangle and can use a linear interpolation function to weight each point’s color appropriately and since the coefficients all add up to one we can be sure that we have a defined range lying between the acceptable r,g,b values. Thus you see that as we sample each point within the triangle, we can derive this smooth color triangle.
+<br />
+<br />
+<div align="middle">
+    <table style="width=100%">
+        <tr>
+            <td>
+                <img src="images/task4-2.png" align="middle" width="150px"/>
+                <figcaption align="middle">Color triangle.</figcaption>
+            </td>
+            <td>
+              <img src="images/task4-1.png" align="middle" width="400px"/>
+              <figcaption align="middle">Color wheel.</figcaption>
+            </td>
+        </tr>
+    </table>
+</div>
+<br />
+
+<h3 align="middle">Part 5: "Pixel sampling" for texture mapping</h3>
+
+<p>
+  Pixel sampling is the process of querying a function based on varying pixel locations that can then output color values corresponding to the pixel input. In this project, we used pixel sampling to map a pixel location in screen space to its corresponding location in texture space in order to effectively translate a texture onto an object–in other words, the translation between textures and pixels became the function to be queried. However, the process of pixel sampling itself is far more complex–it involves resolving differences in object size in screen space and in texture space, and involves dealing with high frequencies that may cause aliasing or other rendering artifacts. To best accomplish this, we utilized two different types of sampling methods. In nearest-pixel sampling, we converted our sampling location to texture coordinates and used the distances to neighboring pixel locations in texture coordinates to find the nearest pixel to our location. We then took this color to use as the pixel color in screen space. In bilinear sampling, we once again converted our sampling location to texture coordinates and found the four nearest pixels. We then performed linear interpolation in the x-directions on the colors of both sets of 2 neighboring pixels, and performed a final linear interpolation in the y direction, with the results from the first two LERPs as input. This gave us our final color to use for the pixel color in screen space. 
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/nearest1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Nearest, SR=1</figcaption>
+      </td>
+      <td>
+        <img src="images/bilinear1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Bilinear, SR=1</figcaption>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <img src="images/nearest16.png" align="middle" width="400px"/>
+        <figcaption align="middle">Nearest, SR=16</figcaption>
+      </td>
+      <td>
+        <img src="images/bilinear16.png" align="middle" width="400px"/>
+        <figcaption align="middle">Bilinear, SR=16</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h3 align="middle">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
+
+<p> Level sampling is the process of changing the degree of downsampling based on how much is needed at different parts of an image/texture. In the context of texture mapping, it is especially useful for minification, where a small number of pixels in screen space takes up a relatively large part of the corresponding texture. To implement level sampling in texture mapping, we use mipmaps, where many different amounts of downsampling are applied to the image and stored individually, and based on the level of minification a corresponding downsampled texture is chosen.
+Pixel sampling, level sampling, and changing the samples per pixel all allow us to improve the appearance of our final image, but results in inevitable memory and efficiency tradeoffs. Increasing the samples per pixel, or supersampling, can drastically reduce antialiasing, but necessitates a sacrifice in efficiency because we must sample and average over far more locations. Level sampling is so powerful not just because of its antialiasing power but also because of its versatility–mipmaps allow us to antialias at certain places without losing rich detail at others. It does require more memory, however as stated in lecture we require only about ⅓ more memory compared to storing the image itself. Lastly, pixel sampling techniques such as bilinear sampling can once again reduce aliasing artifacts, but only through more computation–the linear interpolations allow us to smooth high frequencies, but we must sacrifice efficiency to do so. 
+</p> 
+
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/0nearest.png" align="middle" width="400px"/>
+        <figcaption align="middle">L_ZERO, P_NEAREST</figcaption>
+      </td>
+      <td>
+        <img src="images/0linear.png" align="middle" width="400px"/>
+        <figcaption align="middle">L_ZERO, P_LINEAR</figcaption>
+      </td>
+    </tr>
+    <br></br>
+    <tr>
+      <td>
+        <img src="images/nearestnearest.png" align="middle" width="400px"/>
+        <figcaption align="middle">L_NEAREST, P_NEAREST</figcaption>
+      </td>
+      <td>
+        <img src="images/nearestlinear.png" align="middle" width="400px"/>
+        <figcaption align="middle">L_NEAREST, P_LINEAR</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h2 align="middle">Section III: Art Competition</h2>
+<p>If you are not participating in the optional art competition, don't worry about this section!</p>
+
+<h3 align="middle">Part 7: Draw something interesting!</h3>
+
+</body>
 </html>

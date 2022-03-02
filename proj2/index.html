@@ -1,7 +1,205 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 2 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+  <style>
+    body {
+      padding: 100px;
+      width: 1000px;
+      margin: auto;
+      text-align: left;
+      font-weight: 300;
+      font-family: 'Open Sans', sans-serif;
+      color: #121212;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+  </style>
+  <title>CS 184 Mesh Editor</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+  <h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2022</h1>
+  <h1 align="middle">Project 2: Mesh Editor</h1>
+  <h2 align="middle">Ashvin Dhawan, CS184-ACI; Ishil Puri CS184-ABS</h2>
+
+  <br><br>
+
+  <div>
+
+    <h2 align="middle">Overview</h2>
+    <p>In this project, we first implemented logic and algorithms necessary to compute Bezier curves and Bezier surfaces. This helped us understand the usefulness of Bezier curves not just in formulating simple curves, but also how they can be used to generate more complex surfaces. We then moved on to dealing with triangle meshes; our first task of computing area-weighted vertex normals introduced us to the somewhat tedious process of traversing vertices, half-edges, and faces. We were immediately surprised by the unexpected power of the half-edge data structure. While half-edges did not initially stick out to us as a useful top-level organizational structure, we quickly learned just how powerful they could be to quickly and efficiently access mesh features. We then moved on to manipulating meshes themselves through edge flips, edge splits, and mesh upsampling. While poring over half-edge pointers seemed unproductive, we gained an appreciation for the tedious calculations that need to be done to support mesh edits that are ultimately very elegant. Moreover, implementing loop subdivision firsthand helped us understand how the clever logic of edge splits and selective edge flips created a symmetric mesh upsampling, and solidified theoretical concepts by putting them into practice.</p>
+
+    <h2 align="middle">Section I: Bezier Curves and Surfaces</h2>
+
+    <h3 align="middle">Part 1: Bezier curves with 1D de Casteljau subdivision</h3>
+
+    <p>De Casteljau's algorithm is a method to evaluate Bezier Curves given n control points. The algorithm uses linear interpolation between successive pairs of the n control points to generate n-1 control points, then repeats the process to generate n-2 control points, stopping when a single point is reached. When the process is repeated for t -> [0,1], where t represents the linear interpolation parameter, the output is the entire Bezier curve. 
+    </p>
+
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/Part1_1.png" align="middle" width="300px" />
+            <figcaption align="middle">Step 1</figcaption>
+          </td>
+          <td>
+            <img src="images/Part1_2.png" align="middle" width="300px" />
+            <figcaption align="middle">Step 2</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/Part1_3.png" align="middle" width="300px" />
+            <figcaption align="middle">Step 3</figcaption>
+          </td>
+          <td>
+            <img src="images/Part1_4.png" align="middle" width="300px" />
+            <figcaption align="middle">Step 4</figcaption>
+          </td>
+        </tr>
+        <tr></tr>
+        <tr>
+          <td>
+            <img src="images/Part1_3.png" align="middle" width="300px" />
+            <figcaption align="middle">Modified t-value and control points</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+
+    <h3 align="middle">Part 2: Bezier surfaces with separable 1D de Casteljau subdivision</h3>
+
+    <p> To extend De Casteljau's algorithm to the 2D case, we must first recognize that our control points are now laid out as an nxn grid in 2D. Thus, we can use the n nx1 sets of control points to create n separate Bezier curves along one dimension. We can then once again perform DeCasteljau’s algorithm from t = [0,1] at various points along these n Bezier curves to create our final Bezier surface. </p>
+    <br> </br>
+    <br> </br>
+    <table style="width=100%;margin-left:auto;margin-right:auto">
+      <tr>
+        <td>
+    <img src="images/Part 2.png" align="middle" width="400px" />
+    <figcaption align="middle">Teapot generated through bezier surface</figcaption>
+       </td>
+     </tr>
+    </table>
+
+    <h2 align="middle">Section II: Sampling</h2>
+
+    <h3 align="middle">Part 3: Average normals for half-edge meshes</h3>
+
+    <p>We implemented area-weighted vertex normal by first creating a helper function called Face::area_normal within halfedgeMesh.cpp. This function is very similar to the already-defined Face::normal in that it uses the cross product of vertices to compute a vector that’s normal to a face. However, our area_normal does NOT normalize this vector in order to ensure that the vectors are weighted by area. We then “walk” around the edges incident to the input vertex to sum the vectors of each face, and finally normalize the summed vector. </p>
+
+    <table style="width=100%;margin-left:auto;margin-right:auto">
+      <tr>
+        <td>
+          <img src="images/Part 3_1.png" align="middle" width="400px" />
+          <figcaption align="middle">Default flat shading</figcaption>
+       </td>
+       <td>
+        <img src="images/Part3_2.png" align="middle" width="400px" />
+        <figcaption align="middle">Phong Shading (with normals)</figcaption>
+     </td>
+     </tr> 
+    </table>
+
+    <h3 align="middle">Part 4: Half-edge flip</h3>
+    <p>To accomplish the edge flip operation, it was crucial to ensure that we understood the relationships between each of the mesh elements and map out exactly what a flip looks like. So we did exactly that in the screenshot below. The next step was to go to the code: we first listed out all of the elements of the mesh–the reason for doing so is to avoid any chance of error in not assigning values as that could be quite difficult to debug. The next step was to then simply assign each element its new pointer values–this is because we can achieve a flip without adding or deleting any elements and can simply move the pointer references around. To further avoid human error, we utilized the setNeighbors() function to set all values for the halfedges not just the ones we thought would change. As you see in the two screenshots of teapot.dae below, we have successfully executed a series of flips.</p>
+
+    <table style="width=100%;margin-left:auto;margin-right:auto">
+      <tr>
+        <td>
+          <img src="images/diagram_4.png" align="middle" width="400px" />
+          <figcaption align="middle">Diagram</figcaption>
+       </td>
+     </tr>
+     <tr>
+       <td>
+        <img src="images/teapot_reg.png" align="middle" width="400px" />
+        <figcaption align="middle">(before) teapot</figcaption>
+      </td>
+      <td>
+        <img src="images/teapot_4.png" align="middle" width="400px" />
+        <figcaption align="middle">(after flips) teapot</figcaption>
+      </td>
+     </tr> 
+    </table>
+
+
+    <h3 align="middle">Part 5: Half-edge split</h3>
+    <p>The edge split operation requires a significant amount of pointer manipulation and differs from the flip operation due to the need for creation of new elements such as the red elements listed below. The highlighted objects are old elements which will require updates to their existing values. Debugging tricks involved in this process included walking through the each split by inspecting the values of each of the half edges and their corresponding mesh elements such as the vertices, edges, and faces to ensure that the pointer assignment was indeed correct.  Fortunately the precautions we took allowed us to avoid a lengthy and brutal debugging process. Seen below are two examples of the teapot mesh after edge splits and another example after a series of split and flip combinations.</p>
+
+    <table style="width=100%;margin-left:auto;margin-right:auto">
+      <tr>
+        <td>
+          <img src="images/diagram_5.png" align="middle" width="400px" />
+          <figcaption align="middle">Diagram</figcaption>
+       </td>
+       <td>
+        <img src="images/teapot_reg.png" align="middle" width="400px" />
+        <figcaption align="middle">(before) teapot</figcaption>
+      </td>
+     </tr>
+     <tr>
+      <td>
+        <img src="images/teapot_5_s.png" align="middle" width="400px" />
+        <figcaption align="middle">(after split) teapot</figcaption>
+      </td>
+      <td>
+        <img src="images/teapot_5_fs.png" align="middle" width="400px" />
+        <figcaption align="middle">(after flips & splits) teapot</figcaption>
+      </td>
+     </tr> 
+    </table>
+
+    <h3 align="middle">Part 6: Loop subdivision for mesh upsampling</h3>
+    <p>We followed the given skeleton for the loop subdivision process. Essentially there are 5 main steps:
+    <ol>
+      <li>we must compute the new positions for all the vertices in the mesh</li>
+    <li>we compute the updated vertex positions and assign them to the associated edge (this will help later on when we need to assign positions to the new vertices created after the split)</li>
+    <li>We split every edge in the mesh and ensure that we avoid entering an infinite loop by creating a vector that stores the original (old) edges and simply iterates through that vector and splits the edges as appropriate. Thus we can be sure that we do not split any edge multiple times.</li>
+    <li>Flip only edges that connect and old and new vertex. We simply XOR the `isNew` field of the two vertices to check satisfaction of this condition and then flipped.</li>
+    <li>Finally we copy over all the new vertex positions into the final position of the corresponding vertex.</li>
+    </ol>
+    Sharp corners seem to protrude in an abnormal way after loop subdivision. This may be due to the fact that the sharp corners only have a degree of 4 which is less than other vertices in the mesh which have 6. To avoid this weird effect it might be beneficial to pre-split the edges at these corners to increase the degree which would allow the loop subdivision to work similarly to the other vertices.
+    <br>
+    <br>
+    After repeated loop subdivisions, the cube seems to have certain incongruities. The cube tends to be asymmetrical, most likely because when taking a closer look at the cube before any upsampling, there is only one diagonal edge on each face of the cube. This means that when edges are split and flipped, the asymmetry will propagate into further rounds of upsampling. Thus, if we split the diagonal edges on each cube face to create two diagonals on each face, the splits and flips in subsequent upsampling rounds will result in increased symmetry. 
+    </p>
+
+    <table style="width=100%;margin-left:auto;margin-right:auto">
+      <tr>
+        <td>
+          <img src="images/cow_6.png" align="middle" width="400px" />
+          <figcaption align="middle">cow after loop subdivision</figcaption>
+       </td>
+       <td>
+        <img src="images/sharp_6.png" align="middle" width="400px" />
+        <figcaption align="middle">cube after several iterations (sharp corners)</figcaption>
+      </td>
+      <td>
+        <img src="images/teapot_6.png" align="middle" width="400px" />
+        <figcaption align="middle">teapot after 2 iterations</figcaption>
+      </td>
+     </tr>
+   </table>
+
+
+    <h2 align="middle">Section III: Optional Extra Credit</h2>
+    <p>If you are not participating in the optional mesh competition, don't worry about this section!</p>
+
+    <h3 align="middle">Part 7: Design your own mesh!</h3>
+
+</body>
+
 </html>

@@ -1,7 +1,255 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 4 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Cloth Simulator</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2021</h1>
+<h1 align="middle">Project 4: Cloth Simulator</h1>
+<h2 align="middle">Ashvin Dhawan, CS184-aci, Ishil Puri, CS184-abs</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>This project was an interesting application of understanding how to simulate motion. The idea of using springs and masses to simulate motion never quite occurred to us but in application it made logical sense. Being able to simulate motion in larger projects like games is all about determining interactions between objects which is all determined by forces. One of my favorite parts of the project was modifying the surface of the objects like texture mapping and figuring out how to apply various appearances to the same object. This reminds me of memojis and mii's from products and games that simulate a metaverse. Overall we learned a lot and found this project to be quite relevant to the real world.</p>
+
+<h2 align="middle">Part I: Masses and springs</h2>
+
+<table>
+  <tr>
+    <td>
+      <img src="images/p1-all.png" width="480px" />
+      <figcaption align="middle">all constraints</figcaption>
+    </td>
+
+    <td>
+      <img src="images/p1-no-shearing.png" width="500 px" />
+      <figcaption align="middle">no shearing</figcaption>
+    </td>
+  </tr>
+
+  <tr>
+
+    <td>
+      <img src="images/p1-only-shearing.png" width="540px" />
+      <figcaption align="middle">only shearing</figcaption>
+    </td>
+  </tr>
+</table>
+
+<h2 align="middle">Part II: Simulation via numerical integration</h2>
+Higher ks leads to tighter tension between each point mass. Lower ks leads to lesser tension resulting in a more fluid motion as the cloth settles.
+
+A lower density results in the cloth having more volatile action while a greater density results in the cloth acting as if it were more heavy and less disturbed by movement.
+
+Increasing damping greatly reduces the oscillating motion of the cloth while decreasing damping makes the settling of the cloth take much longer
+<table>
+  <tr>
+    <td>
+      <img src="images/p2-resting.png" width="480px" />
+      <figcaption align="middle">resting</figcaption>
+    </td>
+
+    <td>
+      <img src="images/p2-high-ks.png" width="500 px" />
+      <figcaption align="middle">high ks</figcaption>
+    </td>
+  </tr>
+
+  <tr>
+
+    <td>
+      <img src="images/p2-low-damping.png" width="540px" />
+      <figcaption align="middle">low damping</figcaption>
+    </td>
+
+    <td>
+      <img src="images/p2-low-density.png" width="540px" />
+      <figcaption align="middle">low density</figcaption>
+    </td>
+  </tr>
+</table>
+
+
+<h2 align="middle">Part III: Handling Collisions with Other Objects</h2>
+<p>In Part III, we implemented logic such that our cloth would naturally intersect with spheres and planes. We accomplished this by using the direction vectors between a point mass's last and current positions, and computing an intersection point on the plane's/sphere's surface in order to update the point mass's position.  </p>
+<h3> Sphere Intersection </h3>
+<table>
+  <tr>
+    <td>
+      <img src="images/Part3_500.png" width="480px" />
+      <figcaption align="middle">ks = 500</figcaption>
+    </td>
+
+    <td>
+      <img src="images/Part3_5000.png" width="500 px" />
+      <figcaption align="middle">ks = 5000</figcaption>
+    </td>
+  </tr>
+
+  <tr>
+
+    <td>
+      <img src="images/Part3_50000.png" width="540px" />
+      <figcaption align="middle">ks = 50000</figcaption>
+    </td>
+  </tr>
+</table>
+<p>As we can see, increasing the spring constant enforces more rigidity in the cloth, causing different shapes as the cloth is draped over the sphere. When ks = 500, the cloth appears more "flexible", with the reduction on force causing the cloth to heavily droop downwards. At the highest ks value of 50000, the increase in force causes the cloth to remain upright.</p>
+<h3> Plane Intersection</h3>
+<table>
+  <tr>
+    <td>
+    <img src="images/Part3_Wireframe.png" width="540px" />
+    <figcaption align="middle">Plane Intersection: Wireframe</figcaption>
+    </td>
+
+    <td>
+    <img src="images/Part3_Normal.png" width="540px" />
+    <figcaption align="middle">Plane Intersection: Normal</figcaption>
+    </td>
+  </tr>
+</table>
+<p> In both the normal shading and wireframe model, we can see the cloth resting just above the plane below.</p>
+
+<h2 align="middle">Part IV: Handling self-collisions</h2>
+Varying density resulted in a much flatter resting state when density was increased. It seems that the cloth acts heavier and thus attempts to fall further to the floor and flatter. Varying KS showed that a low ks did not have much effect as compared to a high KS where the cloth seemed to just keep moving off the plane. It seems that the tension was so high that the collisions kept pushing against each other creating a vector that would move the cloth.
+<table>
+  <tr>
+    <td>
+      <img src="images/p4-resting.png" width="480px" />
+      <figcaption align="middle">resting</figcaption>
+    </td>
+
+    <td>
+      <img src="images/p4-early.png" width="500 px" />
+      <figcaption align="middle">early</figcaption>
+    </td>
+  </tr>
+
+  <tr>
+
+    <td>
+      <img src="images/p4-middle.png" width="540px" />
+      <figcaption align="middle">mid collision</figcaption>
+    </td>
+
+    <td>
+      <img src="images/p4-high-density.png" width="540px" />
+      <figcaption align="middle">high density</figcaption>
+    </td>
+  </tr>
+
+  <tr>
+
+    <td>
+      <img src="images/p4-high-ks.png" width="540px" />
+      <figcaption align="middle">high ks</figcaption>
+    </td>
+  </tr>
+</table>
+
+
+<h2 align="middle">Part V: Shaders</h2>
+<p> In part 5, we implemented Shader programs to augment our cloth simulation. Shaders are programs that affect the lighting and color of surfaces that can be isolated and run in parallel in GPUs. This means that we can efficiently create rich lighting effects using shader programs without having to sacrifice significantly on efficiency or rendering time.
+  Vertex shaders affect only vertices; they may change the position of these vertices, but also can change properties like normal vectors, which has an effect on color depending on the shading model being used.
+  Fragment shaders assign an out_color to each fragment, which is a geometrically defined object created after rasterization. Fragment shaders allow us to take a collection of vertices and give color to their coincident fragment. 
+</p>
+<br>
+<p>
+  The Blinn-Phong shading model combines multiple lighting components to generate realistic overall lighting effects of objects. The model combines ambient lighting, diffuse lighting, and specular lighting to create a realistic representation of a object with incident light. The ambient lighting provides a baseline level of light to the seen, allowing us to distinguish objects illuminated by a light source. The diffuse lighting captures an object's ability to uniformly reflect light, while the specular component captures how certain rays are particularly reflective at the angle that the camera views each point on the object. 
+</p>
+
+<table>
+  <tr>
+    <td>
+    <img src="images/Part5_Ambient.png" width="480px" />
+    <figcaption align="middle">Blinn-Phong: Ambient Only</figcaption>
+    </td>
+
+    <td>
+    <img src="images/Part5_Diffuse.png" width="480px" />
+    <figcaption align="middle">Blinn-Phong: Diffuse Only</figcaption>
+    </td>
+  </tr>
+
+  <tr>
+    <td>
+    <img src="images/Part5_Specular.png" width="480px" />
+    <figcaption align="middle">Blinn-Phong: Specular Only</figcaption>
+    </td>
+    <td>
+    <img src="images/Part5_Total.png" width="480px" />
+    <figcaption align="middle">Blinn-Phong: Total</figcaption>
+    </td>
+  </tr>
+</table>
+
+<h3> Texture Shader: Oski</h3>
+
+<img src="images/Part5_Oski.png" width="480px" />
+<figcaption>Custom Oski Image as Texture!</figcaption>
+
+<h3> Bump Mapping Shader</h3>
+<table>
+  <tr>
+    <td>
+    <img src="images/Part5_Bump_Cloth.png" width="480px" />
+    <figcaption align="middle">Bump Mapping: Cloth, Mesh Coarseness = 128</figcaption>
+    </td>
+  </tr>
+  <tr>
+    <td>
+    <img src="images/Part5_Bump_Sphere_16.png" width="480px" />
+    <figcaption align="middle">Bump Mapping: Sphere, Mesh Coarseness = 16</figcaption>
+    </td>
+
+    <td>
+    <img src="images/Part5_Bump_Sphere_128.png" width="480px" />
+    <figcaption align="middle">Bump Mapping: Sphere, Mesh Coarseness = 128</figcaption>
+    </td>
+  </tr>
+</table>
+<h3> Displacement Mapping Shader</h3>
+<table>
+  <tr>
+    <td>
+    <img src="images/Part5_Displace_Sphere_16.png" width="480px" />
+    <figcaption align="middle">Displacement Mapping: Sphere, Mesh Coarseness = 16</figcaption>
+    </td>
+
+    <td>
+    <img src="images/Part5_Displace_Sphere_128.png" width="480px" />
+    <figcaption align="middle">Displacement Mapping: Sphere, Mesh Coarseness = 128</figcaption>
+    </td>
+  </tr>
+</table>
+
+<p>As we can see, bump mapping gives us the illusion of detail through changing the normal vectors, while displacement mapping actually creates the surface detail by modifying vertex positions. Both methods display the texture rather well, but it is clear to see that with displacement mapping, the effect of the bumps on each texture is much more drawn out. </p>
+<p> With coarse meshes, we can see that the sphere is not entirely circular in both bump and displacement mapping. Moreover, in displacement mapping specifically the change in vertex position is much more pronounced with detailed meshes than with coarse ones. </p>
+<h3> Mirror Shader</h3>
+<img src="images/p5.png" width="480px" />
+
+</body>
 </html>
